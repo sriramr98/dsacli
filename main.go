@@ -3,6 +3,7 @@ package main
 import (
 	"dsacli/cmd/complete"
 	"dsacli/cmd/list"
+	"dsacli/cmd/seed"
 	"dsacli/cmd/today"
 	"fmt"
 	"os"
@@ -36,6 +37,7 @@ func main() {
 	rootCmd.AddCommand(today.TodayCommand)
 	rootCmd.AddCommand(complete.CompleteCommand)
 	rootCmd.AddCommand(list.ListCommand)
+	rootCmd.AddCommand(seed.SeedDBCommand)
 	rootCmd.AddCommand(versionCommand)
 
 	if err := rootCmd.Execute(); err != nil {
