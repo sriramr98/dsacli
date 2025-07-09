@@ -18,8 +18,7 @@
 go.work
 
 # Built binaries
-dsacli
-dsacli-*
+bin/*
 
 # IDE files
 .vscode/
