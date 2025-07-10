@@ -16,4 +16,5 @@ type TodayQuestion struct {
 	gorm.Model
 	QuestionID uint   `json:"question_id"`
 	Date       string `json:"date"`
+	Completed  bool   `json:"completed" gorm:"default:false"`
 }

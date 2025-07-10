@@ -13,6 +13,7 @@ func InsertTodayQuestions(questions []types.Question) error {
 		todayQuestions = append(todayQuestions, types.TodayQuestion{
 			Date:       today.Format("2006-01-02"),
 			QuestionID: q.Model.ID,
+			Completed:  false,
 		})
 	}
 
@@ -21,7 +22,7 @@ func InsertTodayQuestions(questions []types.Question) error {
 }
 
 func GetTodayQuestions() ([]types.Question, error) {
-	var questions []types.Question
+	var questions []types.TodayQuestion
 	today := time.Now().Format("2006-01-02")
 
 	res := gormDB.Where("date = ?", today).Find(&questions)
@@ -29,5 +30,16 @@ func GetTodayQuestions() ([]types.Question, error) {
 		return nil, res.Error
 	}
 
-	return questions, nil
+	var questionIDs []uint
+	for _, tq := range questions {
+		questionIDs = append(questionIDs, tq.QuestionID)
+	}
+
+	var result []types.Question
+	res = gormDB.Where("id IN ?", questionIDs).Find(&result)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+
+	return result, nil
 }

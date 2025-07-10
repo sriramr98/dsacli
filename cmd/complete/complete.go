@@ -4,36 +4,39 @@ import (
 	"dsacli/common"
 	"dsacli/db"
 	"fmt"
-	"strconv"
-	"time"
-
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
+	"time"
 )
 
 const DateFormat = "2006-01-02T15:04:05"
 
 var Command = &cobra.Command{
-	Use:   "complete [question_id]",
+	Use:   "complete",
 	Short: "Mark a question as complete",
-	Long:  `Mark a question as complete and provide feedback to update its SR score. Use the question ID from 'dsacli list'.`,
-	Args:  cobra.ExactArgs(1),
+	Long:  `Mark a question as complete and provide feedback to update its SR score.`,
 	Run:   completeCmd,
 }
 
 func completeCmd(cmd *cobra.Command, args []string) {
-	if len(args) != 1 {
-		color.Red("Error: Please provide the question ID.")
-		color.White("Usage: dsacli complete <question_id>")
-		color.White("Use 'dsacli list' to see all question IDs.")
+	todaysQuestions, err := db.GetTodayQuestions()
+	if err != nil {
+		color.Red("Error loading today's questions: %v", err)
 		return
 	}
 
-	questionID, err := strconv.Atoi(args[0])
-	if err != nil {
-		color.Red("Error: Invalid question ID. Please provide a number.")
+	if len(todaysQuestions) == 0 {
+		color.Red("No questions found for today. Start by running 'dsacli today' to get today's questions.")
 		return
 	}
+
+	questionPrompts := make([]string, len(todaysQuestions))
+	for i, q := range todaysQuestions {
+		questionPrompts[i] = fmt.Sprintf("%s (ID: %d)", q.Name, q.ID)
+	}
+
+	idx, err := common.PromptSelect("Select a question", questionPrompts)
+	questionID := todaysQuestions[idx].ID
 
 	questionToUpdate, err := db.FindQuestionByID(questionID)
 	if err != nil {
@@ -41,27 +44,27 @@ func completeCmd(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("Updating score for: %s\n", color.New(color.Bold).Sprintf(questionToUpdate.Name))
+	color.Cyan("You are about to update the question: %s (ID: %d)", questionToUpdate.Name, questionToUpdate.ID)
 
-	hintsNeeded, err := common.PromptInt("Did you need hints? (1=many hints, 5=no hints)")
+	hintsNeeded, err := common.PromptInt("Did you need hints? (1=many hints, 5=no hints)", common.OneToFiveRatingValidator)
 	if err != nil {
 		color.Red("Error reading input: %v", err)
 		return
 	}
 
-	timeTaken, err := common.PromptInt("How long did it take (in minutes)? (-1 if you couldn't solve without solution)")
+	timeTaken, err := common.PromptInt("How long did it take (in minutes)? (-1 if you couldn't solve without solution)", common.NumberValidator)
 	if err != nil {
 		color.Red("Error reading input: %v", err)
 		return
 	}
 
-	optimalSolution, err := common.PromptInt("Was the solution optimal? (1=not optimal, 5=very optimal)")
+	optimalSolution, err := common.PromptInt("Was the solution optimal? (1=not optimal, 5=very optimal)", common.OneToFiveRatingValidator)
 	if err != nil {
 		color.Red("Error reading input: %v", err)
 		return
 	}
 
-	anyBugs, err := common.PromptInt("Were there any bugs? (1=many bugs, 5=no bugs)")
+	anyBugs, err := common.PromptInt("Were there any bugs? (1=many bugs, 5=no bugs)", common.OneToFiveRatingValidator)
 	if err != nil {
 		color.Red("Error reading input: %v", err)
 		return

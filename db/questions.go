@@ -24,8 +24,8 @@ func GetAllQuestions() ([]types.Question, error) {
 	return questions, nil
 }
 
-func FindQuestionByID(id int) (types.Question, error) {
-	q := types.Question{Model: gorm.Model{ID: uint(id)}}
+func FindQuestionByID(id uint) (types.Question, error) {
+	q := types.Question{Model: gorm.Model{ID: id}}
 	gormDB.First(&q)
 	return q, nil
 }
