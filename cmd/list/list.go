@@ -9,22 +9,31 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var ListCommand = &cobra.Command{
+var shortForm = true
+var longForm = false
+
+var Command = &cobra.Command{
 	Use:   "list",
 	Short: "List all questions with their IDs",
 	Long:  `List all questions with their IDs, completion status, and SR scores.`,
 	Run:   listCmd,
 }
 
-func listCmd(cmd *cobra.Command, args []string) {
-	sqlDB, err := db.GetDB()
-	if err != nil {
-		color.Red("Error initializing database: %v", err)
-		return
-	}
-	defer sqlDB.Close()
+func init() {
+	Command.Flags().BoolVarP(&shortForm, "short", "s", true, "Prints category wise stats only")
+	Command.Flags().BoolVarP(&longForm, "long", "l", false, "Prints all questions with IDs, completion status, and SR scores")
+}
 
-	questions, err := db.GetAllQuestions(sqlDB)
+func listCmd(cmd *cobra.Command, args []string) {
+	if longForm {
+		shortForm = false
+	}
+
+	if !longForm && !shortForm {
+		shortForm = true
+	}
+
+	questions, err := db.GetAllQuestions()
 	if err != nil {
 		color.Red("Error loading questions: %v", err)
 		return
@@ -46,15 +55,28 @@ func listCmd(cmd *cobra.Command, args []string) {
 	}
 
 	printQuestionList := func(title string, questions []types.Question, titleColor *color.Color) {
-		if len(questions) > 0 {
-			titleColor.Printf("\n%s:\n", title)
-			for _, q := range questions {
-				status := "❌"
-				if q.Attempted {
-					status = "✅"
-				}
-				fmt.Printf("  %s ID:%d - %s (SR Score: %d)\n", status, q.ID, q.Name, q.SRScore)
+		titleColor.Printf("\n%s: (%d)\n", title, len(questions))
+
+		totalAttempted := 0
+		longFormLogs := make([]string, 0)
+		for _, q := range questions {
+			status := "❌"
+			if q.Attempted {
+				totalAttempted++
+				status = "✅"
 			}
+
+			longFormLogs = append(longFormLogs, fmt.Sprintf("  %s ID:%d - %s (SR Score: %d)\n", status, q.ID, q.Name, q.SRScore))
+		}
+
+		color.White("	- Total Attempted: %d\n", totalAttempted)
+		color.White("	- Total UnAttempted: %d\n", len(questions)-totalAttempted)
+		if shortForm {
+			return
+		}
+
+		for _, log := range longFormLogs {
+			fmt.Print(log)
 		}
 	}
 

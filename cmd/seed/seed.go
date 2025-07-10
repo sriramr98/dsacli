@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var SeedDBCommand = &cobra.Command{
+var Command = &cobra.Command{
 	Use:   "seed [json_path]",
 	Short: "Add problems to database",
 	Long:  "Use this command to add problems to the database",
@@ -18,20 +18,18 @@ var SeedDBCommand = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 }
 
-func runSeed(cmd *cobra.Command, args []string) {
+func runSeed(_ *cobra.Command, args []string) {
 	problemFilePath := args[0]
 	questions, err := readQuestions(problemFilePath)
-
-	color.Yellow("Inserting %d questions into database", len(questions))
-
-	sqlDB, err := db.GetDB()
 	if err != nil {
-		color.Red("Unable to read database for error: %s", err)
+		color.Red("Error reading questions from file: %s", err)
 		return
 	}
 
-	if err := db.InsertQuestions(sqlDB, questions); err != nil {
-		color.Red("Unable to insert questions into database with error: %s", err)
+	color.Yellow("Inserting %d questions into database", len(questions))
+
+	if err := db.InsertQuestions(questions); err != nil {
+		color.Red("Error inserting questions into database: %s", err)
 		return
 	}
 

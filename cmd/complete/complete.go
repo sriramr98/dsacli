@@ -13,7 +13,7 @@ import (
 
 const DateFormat = "2006-01-02T15:04:05"
 
-var CompleteCommand = &cobra.Command{
+var Command = &cobra.Command{
 	Use:   "complete [question_id]",
 	Short: "Mark a question as complete",
 	Long:  `Mark a question as complete and provide feedback to update its SR score. Use the question ID from 'dsacli list'.`,
@@ -35,21 +35,9 @@ func completeCmd(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	sqlDB, err := db.GetDB()
-	if err != nil {
-		color.Red("Error initializing database: %v", err)
-		return
-	}
-	defer sqlDB.Close()
-
-	questionToUpdate, err := db.FindQuestionByID(sqlDB, questionID)
+	questionToUpdate, err := db.FindQuestionByID(questionID)
 	if err != nil {
 		color.Red("Error finding question: %v", err)
-		return
-	}
-
-	if questionToUpdate == nil {
-		color.Red("Error: Could not find question with ID %d.", questionID)
 		return
 	}
 
@@ -79,14 +67,14 @@ func completeCmd(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	srScore := CalculateScore(timeTaken, hintsNeeded, optimalSolution, anyBugs, *questionToUpdate)
+	srScore := CalculateScore(timeTaken, hintsNeeded, optimalSolution, anyBugs, questionToUpdate)
 
 	nowStr := time.Now().Format(DateFormat)
 	questionToUpdate.LastReviewed = &nowStr
 	questionToUpdate.Attempted = true
 	questionToUpdate.SRScore = srScore
 
-	if err := db.UpdateQuestion(sqlDB, *questionToUpdate); err != nil {
+	if err := db.UpdateQuestion(questionToUpdate); err != nil {
 		color.Red("Error updating question: %v", err)
 		return
 	}

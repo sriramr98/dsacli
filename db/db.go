@@ -1,45 +1,37 @@
 package db
 
 import (
-	"database/sql"
+	"dsacli/types"
+	_ "embed"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+	"log"
 	"os"
 	"path/filepath"
 )
 
 const (
-	DBFilename string = "dsacli"
-	AppName
+	DBFilename string = "dsacli.db"
+	AppName           = "dsacli"
 )
 
-func GetDB() (*sql.DB, error) {
+var gormDB *gorm.DB
+
+func init() {
 	dbPath, err := getDBPath()
 	if err != nil {
-		return nil, err
+		panic("Failed to get database path: " + err.Error())
 	}
-
-	db, err := sql.Open("sqlite3", dbPath)
+	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 	if err != nil {
-		return nil, err
+		panic("Failed to connect to database: " + err.Error())
 	}
 
-	// Create questions table if it doesn't exist
-	createTableSQL := `
-	CREATE TABLE IF NOT EXISTS questions (
-		id INTEGER PRIMARY KEY,
-		name TEXT NOT NULL,
-		url TEXT NOT NULL,
-		difficulty TEXT NOT NULL,
-		last_reviewed TEXT,
-		sr_score INTEGER DEFAULT 0,
-		attempted BOOLEAN DEFAULT 0
-	);`
+	gormDB = db
 
-	if _, err := db.Exec(createTableSQL); err != nil {
-		db.Close()
-		return nil, err
+	if err := gormDB.AutoMigrate(&types.Question{}, &types.TodayQuestion{}); err != nil {
+		log.Println("Failed to migrate database schema:", err)
 	}
-
-	return db, nil
 }
 
 // SqLite3 file is created at ~/.dsacli/dsacli.db
@@ -51,7 +43,7 @@ func getDBPath() (string, error) {
 	return filepath.Join(appDir, DBFilename), nil
 }
 
-// Createa a folder ~/.dsacli
+// Creates a folder ~/.dsacli
 func getAppDir() (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {

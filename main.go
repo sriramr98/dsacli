@@ -34,10 +34,10 @@ func main() {
 		Run:   versionCmd,
 	}
 
-	rootCmd.AddCommand(today.TodayCommand)
-	rootCmd.AddCommand(complete.CompleteCommand)
-	rootCmd.AddCommand(list.ListCommand)
-	rootCmd.AddCommand(seed.SeedDBCommand)
+	rootCmd.AddCommand(today.Command)
+	rootCmd.AddCommand(complete.Command)
+	rootCmd.AddCommand(list.Command)
+	rootCmd.AddCommand(seed.Command)
 	rootCmd.AddCommand(versionCommand)
 
 	if err := rootCmd.Execute(); err != nil {

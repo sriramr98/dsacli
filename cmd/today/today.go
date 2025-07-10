@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var TodayCommand = &cobra.Command{
+var Command = &cobra.Command{
 	Use:   "today",
 	Short: "Suggests two DSA questions for today",
 	Long:  `Suggests two DSA questions for today based on difficulty progression and smart review.`,
@@ -21,32 +21,34 @@ var TodayCommand = &cobra.Command{
 }
 
 func todayCmd(cmd *cobra.Command, args []string) {
-	sqlDB, err := db.GetDB()
-	if err != nil {
-		color.Red("Error initializing database: %v", err)
+	todayQuestions, err := db.GetTodayQuestions()
+	if err == nil && len(todayQuestions) > 0 {
+		for idx, q := range todayQuestions {
+			fmt.Printf("%d. %s (%s) - %s\n", idx+1, q.Name,
+				strings.ToUpper(string(q.Difficulty[0]))+q.Difficulty[1:], q.URL)
+		}
 		return
 	}
-	defer sqlDB.Close()
 
-	easyQuestions, err := db.GetQuestionsByDifficulty(sqlDB, "easy")
+	easyQuestions, err := db.GetQuestionsByDifficulty("easy")
 	if err != nil {
 		color.Red("Error loading easy questions: %v", err)
 		return
 	}
 
-	mediumQuestions, err := db.GetQuestionsByDifficulty(sqlDB, "medium")
+	mediumQuestions, err := db.GetQuestionsByDifficulty("medium")
 	if err != nil {
 		color.Red("Error loading medium questions: %v", err)
 		return
 	}
 
-	hardQuestions, err := db.GetQuestionsByDifficulty(sqlDB, "hard")
+	hardQuestions, err := db.GetQuestionsByDifficulty("hard")
 	if err != nil {
 		color.Red("Error loading hard questions: %v", err)
 		return
 	}
 
-	allQuestions, err := db.GetAllQuestions(sqlDB)
+	allQuestions, err := db.GetAllQuestions()
 	if err != nil {
 		color.Red("Error loading all questions: %v", err)
 		return
@@ -141,17 +143,14 @@ func todayCmd(cmd *cobra.Command, args []string) {
 
 	color.Cyan("Here are your questions for today:")
 
-	// Remove duplicates
-	uniqueQuestions := make(map[int]types.Question)
-	for _, q := range questionsForToday {
-		uniqueQuestions[q.ID] = q
+	for idx, q := range questionsForToday {
+		fmt.Printf("%d. %s (%s) - %s\n", idx+1, q.Name,
+			strings.ToUpper(string(q.Difficulty[0]))+q.Difficulty[1:], q.URL)
 	}
 
-	i := 1
-	for _, q := range uniqueQuestions {
-		fmt.Printf("%d. %s (%s) - %s\n", i, q.Name,
-			strings.ToUpper(string(q.Difficulty[0]))+q.Difficulty[1:], q.URL)
-		i++
+	if err := db.InsertTodayQuestions(questionsForToday); err != nil {
+		color.Red("Unable to fetch today's question.. Please try again..", err)
+		return
 	}
 }
 
