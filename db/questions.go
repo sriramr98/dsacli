@@ -2,7 +2,6 @@ package db
 
 import (
 	"dsacli/types"
-	"gorm.io/gorm"
 )
 
 func GetQuestionsByDifficulty(difficulty string) ([]types.Question, error) {
@@ -25,7 +24,7 @@ func GetAllQuestions() ([]types.Question, error) {
 }
 
 func FindQuestionByID(id uint) (types.Question, error) {
-	q := types.Question{Model: gorm.Model{ID: id}}
+	q := types.Question{ID: id}
 	gormDB.First(&q)
 	return q, nil
 }

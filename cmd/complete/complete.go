@@ -4,9 +4,10 @@ import (
 	"dsacli/common"
 	"dsacli/db"
 	"fmt"
+	"time"
+
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
-	"time"
 )
 
 const DateFormat = "2006-01-02T15:04:05"
@@ -36,6 +37,10 @@ func completeCmd(cmd *cobra.Command, args []string) {
 	}
 
 	idx, err := common.PromptSelect("Select a question", questionPrompts)
+	if err != nil {
+		color.Red("Error reading input: %v", err)
+		return
+	}
 	questionID := todaysQuestions[idx].ID
 
 	questionToUpdate, err := db.FindQuestionByID(questionID)
@@ -72,14 +77,18 @@ func completeCmd(cmd *cobra.Command, args []string) {
 
 	srScore := CalculateScore(timeTaken, hintsNeeded, optimalSolution, anyBugs, questionToUpdate)
 
-	nowStr := time.Now().Format(DateFormat)
-	questionToUpdate.LastReviewed = &nowStr
+	now := time.Now()
+	questionToUpdate.LastReviewed = &now
 	questionToUpdate.Attempted = true
 	questionToUpdate.SRScore = srScore
 
 	if err := db.UpdateQuestion(questionToUpdate); err != nil {
 		color.Red("Error updating question: %v", err)
 		return
+	}
+
+	if err := db.MarkTodayQuestionCompleted(questionID); err != nil {
+		color.Yellow("Warning: Could not mark today's question as completed: %v", err)
 	}
 
 	color.Green("\nSuccessfully updated! New SR Score for '%s' is %d.",

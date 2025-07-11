@@ -15,11 +15,8 @@ func CalculateScore(timeTaken int, hintsNeeded int, optimalSolution int, anyBugs
 	now := time.Now()
 	cDate := 10000.0
 	if question.LastReviewed != nil {
-		lastReviewedDate, err := time.Parse(DateFormat, *question.LastReviewed)
-		if err == nil {
-			delta := now.Sub(lastReviewedDate)
-			cDate = delta.Minutes()
-		}
+		delta := now.Sub(*question.LastReviewed)
+		cDate = delta.Minutes()
 	}
 
 	var cSolution float64

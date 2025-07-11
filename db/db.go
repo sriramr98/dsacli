@@ -3,16 +3,17 @@ package db
 import (
 	"dsacli/types"
 	_ "embed"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 	"log"
 	"os"
 	"path/filepath"
+
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 const (
 	DBFilename string = "dsacli.db"
-	AppName           = "dsacli"
+	AppName    string = "dsacli"
 )
 
 var gormDB *gorm.DB
