@@ -6,64 +6,95 @@ import (
 	"time"
 )
 
-func CalculateScore(timeTaken int, hintsNeeded int, optimalSolution int, anyBugs int, question types.Question) int {
+const (
+	// Time thresholds for scoring (in minutes)
+	FastSolutionThreshold   = 25
+	MediumSolutionThreshold = 35 // Changed from 30 to 35
+	SlowSolutionThreshold   = 45
+
+	// Score multipliers
+	FastTimeMultiplier     = 100
+	MediumTimeMultiplier   = 200
+	SlowTimeMultiplier     = 300
+	VerySlowTimeMultiplier = 400
+	UnsolvedTimeMultiplier = 60 * 400
+
+	// Score weights
+	PreviousScoreWeight = 0.7
+	CurrentScoreWeight  = 0.3
+
+	// Default values
+	DefaultReviewInterval = 10000.0 // minutes
+	PerfectScore          = 5
+	OptimalMultiplier     = 0.5
+)
+
+// CalculateScore computes the spaced repetition score based on user feedback
+func CalculateScore(timeTaken, hintsNeeded, optimalSolution, anyBugs int, question types.Question) int {
 	timeRank := calculateTimeRank(timeTaken)
 
 	// Score is the average rating of these 4 parameters
-	score := (float64(hintsNeeded) + timeRank + float64(optimalSolution) + float64(anyBugs)) / 4
+	averageScore := (float64(hintsNeeded) + timeRank + float64(optimalSolution) + float64(anyBugs)) / 4
 
-	now := time.Now()
-	cDate := 10000.0
-	if question.LastReviewed != nil {
-		delta := now.Sub(*question.LastReviewed)
-		cDate = delta.Minutes()
-	}
+	reviewInterval := calculateReviewInterval(question.LastReviewed)
+	solutionMultiplier := calculateSolutionMultiplier(averageScore)
+	timeFactor := calculateTimeFactor(timeTaken)
 
-	var cSolution float64
-	if score == 5 {
-		cSolution = 0.5
-	} else {
-		cSolution = (5 - score) + 1
-	}
+	newScore := int(math.Round((reviewInterval + timeFactor) * solutionMultiplier))
 
-	cTime := calculateTimeFactor(timeTaken)
-	srScore := int(math.Round((cDate + cTime) * cSolution))
-
+	// If this is the first attempt, return the new score
 	if question.SRScore == 0 {
-		return srScore
-	} else {
-		return int(float64(question.SRScore)*0.7 + float64(srScore)*0.3)
+		return newScore
 	}
+
+	// Otherwise, blend with previous score
+	return int(float64(question.SRScore)*PreviousScoreWeight + float64(newScore)*CurrentScoreWeight)
 }
 
+// calculateTimeRank converts time taken into a 1-5 rating scale
 func calculateTimeRank(timeTaken int) float64 {
-	var timeRank float64
-	if timeTaken == -1 {
-		timeRank = 0
-	} else if timeTaken > 45 {
-		timeRank = 2
-	} else if timeTaken >= 30 && timeTaken <= 45 {
-		timeRank = 3.5
-	} else {
-		timeRank = 5
+	switch {
+	case timeTaken == UnsolvedTimeValue:
+		return 0 // Couldn't solve
+	case timeTaken > SlowSolutionThreshold:
+		return 2 // Very slow
+	case timeTaken >= MediumSolutionThreshold:
+		return 3.5 // Acceptable
+	default:
+		return 5 // Fast
 	}
-
-	return timeRank
 }
 
-func calculateTimeFactor(timeTaken int) float64 {
-	var cTime float64
-	if timeTaken == -1 {
-		cTime = 60 * 400
-	} else if timeTaken < 25 {
-		cTime = float64(timeTaken) * 100
-	} else if timeTaken < 35 {
-		cTime = float64(timeTaken) * 200
-	} else if timeTaken < 45 {
-		cTime = float64(timeTaken) * 300
-	} else {
-		cTime = float64(timeTaken) * 400
+// calculateReviewInterval calculates the time since last review
+func calculateReviewInterval(lastReviewed *time.Time) float64 {
+	if lastReviewed == nil {
+		return DefaultReviewInterval
 	}
 
-	return cTime
+	delta := time.Since(*lastReviewed)
+	return delta.Minutes()
+}
+
+// calculateSolutionMultiplier determines the multiplier based on solution quality
+func calculateSolutionMultiplier(averageScore float64) float64 {
+	if averageScore == PerfectScore {
+		return OptimalMultiplier
+	}
+	return (PerfectScore - averageScore) + 1
+}
+
+// calculateTimeFactor converts time taken into a factor for SR score calculation
+func calculateTimeFactor(timeTaken int) float64 {
+	switch {
+	case timeTaken == UnsolvedTimeValue:
+		return UnsolvedTimeMultiplier
+	case timeTaken < FastSolutionThreshold:
+		return float64(timeTaken) * FastTimeMultiplier
+	case timeTaken < MediumSolutionThreshold:
+		return float64(timeTaken) * MediumTimeMultiplier
+	case timeTaken < SlowSolutionThreshold:
+		return float64(timeTaken) * SlowTimeMultiplier
+	default:
+		return float64(timeTaken) * VerySlowTimeMultiplier
+	}
 }
