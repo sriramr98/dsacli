@@ -12,26 +12,15 @@ import (
 )
 
 const (
-	// DateFormat is the standard date format used throughout the application
 	DateFormat = "2006-01-02T15:04:05"
 
 	// Rating bounds for user feedback
 	MinRating = 1
 	MaxRating = 5
 
-	// Special value for unsolved questions
 	UnsolvedTimeValue = -1
 )
 
-// Command is the cobra command for marking questions as complete
-var Command = &cobra.Command{
-	Use:   "complete",
-	Short: "Mark a question as complete",
-	Long:  `Mark a question as complete and provide feedback to update its SR score.`,
-	Run:   completeCmd,
-}
-
-// CompletionFeedback holds the user's feedback about completing a question
 type CompletionFeedback struct {
 	HintsNeeded     int
 	TimeTaken       int
@@ -39,16 +28,26 @@ type CompletionFeedback struct {
 	AnyBugs         int
 }
 
-// completeCmd is the cobra command handler
-func completeCmd(cmd *cobra.Command, args []string) {
-	if err := executeComplete(); err != nil {
-		color.Red("Error: %v", err)
-		return
+func GetCommand(db db.Database) *cobra.Command {
+	return &cobra.Command{
+		Use:   "complete",
+		Short: "Mark a question as complete",
+		Long:  `Mark a question as complete and provide feedback to update its SR score.`,
+		Run:   completeCmd(db),
+	}
+}
+
+func completeCmd(db db.Database) func(cmd *cobra.Command, args []string) {
+	return func(cmd *cobra.Command, args []string) {
+		if err := executeComplete(db); err != nil {
+			color.Red("Error: %v", err)
+			return
+		}
 	}
 }
 
 // executeComplete contains the main business logic for completing questions
-func executeComplete() error {
+func executeComplete(db db.Database) error {
 	// Get today's questions
 	todaysQuestions, err := db.GetTodayQuestions()
 	if err != nil {

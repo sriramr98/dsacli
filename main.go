@@ -5,6 +5,8 @@ import (
 	"dsacli/cmd/list"
 	"dsacli/cmd/seed"
 	"dsacli/cmd/today"
+	"dsacli/config"
+	"dsacli/db"
 	"fmt"
 	"os"
 
@@ -34,10 +36,16 @@ func main() {
 		Run:   versionCmd,
 	}
 
-	rootCmd.AddCommand(today.Command)
-	rootCmd.AddCommand(complete.Command)
-	rootCmd.AddCommand(list.Command)
-	rootCmd.AddCommand(seed.Command)
+	db, err := db.NewSQLDatabase(config.NewDefaultConfig())
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error initializing database: %v\n", err)
+		os.Exit(1)
+	}
+
+	rootCmd.AddCommand(today.GetCommand(db))
+	rootCmd.AddCommand(complete.GetCommand(db))
+	rootCmd.AddCommand(list.GetCommand(db))
+	rootCmd.AddCommand(seed.GetCommand(db))
 	rootCmd.AddCommand(versionCommand)
 
 	if err := rootCmd.Execute(); err != nil {

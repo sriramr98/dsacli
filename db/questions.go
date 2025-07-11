@@ -4,9 +4,9 @@ import (
 	"dsacli/types"
 )
 
-func GetQuestionsByDifficulty(difficulty string) ([]types.Question, error) {
+func (d SQLDatabase) GetQuestionsByDifficulty(difficulty string) ([]types.Question, error) {
 	var question []types.Question
-	res := gormDB.Find(&question, "difficulty = ?", difficulty).Order("id")
+	res := d.db.Find(&question, "difficulty = ?", difficulty).Order("id")
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -14,31 +14,31 @@ func GetQuestionsByDifficulty(difficulty string) ([]types.Question, error) {
 	return question, nil
 }
 
-func GetAllQuestions() ([]types.Question, error) {
+func (d SQLDatabase) GetAllQuestions() ([]types.Question, error) {
 	var questions []types.Question
-	res := gormDB.Find(&questions)
+	res := d.db.Find(&questions)
 	if res.Error != nil {
 		return nil, res.Error
 	}
 	return questions, nil
 }
 
-func FindQuestionByID(id uint) (types.Question, error) {
+func (d SQLDatabase) FindQuestionByID(id uint) (types.Question, error) {
 	q := types.Question{ID: id}
-	gormDB.First(&q)
+	d.db.First(&q)
 	return q, nil
 }
 
-func UpdateQuestion(q types.Question) error {
-	res := gormDB.Save(&q)
+func (d SQLDatabase) UpdateQuestion(q types.Question) error {
+	res := d.db.Save(&q)
 	if res.Error != nil {
 		return res.Error
 	}
 	return nil
 }
 
-func InsertQuestions(questions []types.Question) error {
-	res := gormDB.Create(questions)
+func (d SQLDatabase) InsertQuestions(questions []types.Question) error {
+	res := d.db.Create(questions)
 	if res.Error != nil {
 		return res.Error
 	}

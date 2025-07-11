@@ -12,19 +12,30 @@ import (
 var shortForm = true
 var longForm = false
 
-var Command = &cobra.Command{
-	Use:   "list",
-	Short: "List all questions with their IDs",
-	Long:  `List all questions with their IDs, completion status, and SR scores.`,
-	Run:   listCmd,
-}
+func GetCommand(db db.Database) *cobra.Command {
+	Command := &cobra.Command{
+		Use:   "list",
+		Short: "List all questions with their IDs",
+		Long:  `List all questions with their IDs, completion status, and SR scores.`,
+		Run:   listCmd(db),
+	}
 
-func init() {
 	Command.Flags().BoolVarP(&shortForm, "short", "s", true, "Prints category wise stats only")
 	Command.Flags().BoolVarP(&longForm, "long", "l", false, "Prints all questions with IDs, completion status, and SR scores")
+
+	return Command
 }
 
-func listCmd(cmd *cobra.Command, args []string) {
+func listCmd(db db.Database) func(cmd *cobra.Command, args []string) {
+	return func(cmd *cobra.Command, args []string) {
+		if err := executeList(db); err != nil {
+			color.Red("Error: %v", err)
+			return
+		}
+	}
+}
+
+func executeList(db db.Database) error {
 	if longForm {
 		shortForm = false
 	}
@@ -35,8 +46,7 @@ func listCmd(cmd *cobra.Command, args []string) {
 
 	questions, err := db.GetAllQuestions()
 	if err != nil {
-		color.Red("Error loading questions: %v", err)
-		return
+		return fmt.Errorf("Error loading questions: %v", err)
 	}
 
 	color.Cyan("All DSA Questions:")
@@ -86,4 +96,6 @@ func listCmd(cmd *cobra.Command, args []string) {
 
 	fmt.Printf("\nTotal Questions: %d\n", len(questions))
 	fmt.Println("\nTo mark a question as complete, use: dsacli complete <question_id>")
+
+	return nil
 }

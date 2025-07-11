@@ -20,24 +20,32 @@ const (
 	hardPhase       = "hard"
 )
 
-// Command represents the today command
-var Command = &cobra.Command{
-	Use:   "today",
-	Short: "Suggests two DSA questions for today",
-	Long:  `Suggests two DSA questions for today based on difficulty progression and smart review.`,
-	Run:   todayCmd,
+func GetCommand(db db.Database) *cobra.Command {
+	Command := &cobra.Command{
+		Use:   "today",
+		Short: "Suggests two DSA questions for today",
+		Long:  `Suggests two DSA questions for today based on difficulty progression and smart review.`,
+		Run:   todayCmd(db),
+	}
+
+	return Command
 }
 
-// todayCmd handles the today command execution
-func todayCmd(cmd *cobra.Command, args []string) {
+func todayCmd(db db.Database) func(cmd *cobra.Command, args []string) {
+	return func(cmd *cobra.Command, args []string) {
+		executeToday(db)
+	}
+}
+
+func executeToday(db db.Database) {
 	// Check if today's questions already exist
-	if questionsWithStatus, err := getTodayQuestionsWithStatusIfExist(); err == nil && len(questionsWithStatus) > 0 {
+	if questionsWithStatus, err := getTodayQuestionsWithStatusIfExist(db); err == nil && len(questionsWithStatus) > 0 {
 		displayTodayQuestions(questionsWithStatus)
 		return
 	}
 
 	// Generate new questions for today
-	questions, err := generateTodayQuestions()
+	questions, err := generateTodayQuestions(db)
 	if err != nil {
 		color.Red("Error generating today's questions: %v", err)
 		return
@@ -58,12 +66,12 @@ func todayCmd(cmd *cobra.Command, args []string) {
 }
 
 // getTodayQuestionsWithStatusIfExist retrieves today's questions with completion status if they already exist
-func getTodayQuestionsWithStatusIfExist() ([]types.TodayQuestionWithStatus, error) {
+func getTodayQuestionsWithStatusIfExist(db db.Database) ([]types.TodayQuestionWithStatus, error) {
 	return db.GetTodayQuestionsWithStatus()
 }
 
 // generateTodayQuestions generates new questions based on difficulty progression
-func generateTodayQuestions() ([]types.Question, error) {
+func generateTodayQuestions(db db.Database) ([]types.Question, error) {
 	// Load questions by difficulty
 	easyQuestions, err := db.GetQuestionsByDifficulty(easyPhase)
 	if err != nil {

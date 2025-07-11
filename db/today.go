@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func InsertTodayQuestions(questions []types.Question) error {
+func (d SQLDatabase) InsertTodayQuestions(questions []types.Question) error {
 	today := time.Now()
 	var todayQuestions []types.TodayQuestion
 
@@ -17,15 +17,15 @@ func InsertTodayQuestions(questions []types.Question) error {
 		})
 	}
 
-	res := gormDB.Create(&todayQuestions)
+	res := d.db.Create(&todayQuestions)
 	return res.Error
 }
 
-func GetTodayQuestions() ([]types.Question, error) {
+func (d SQLDatabase) GetTodayQuestions() ([]types.Question, error) {
 	var questions []types.TodayQuestion
 	today := time.Now().Format("2006-01-02")
 
-	res := gormDB.Where("date = ?", today).Find(&questions)
+	res := d.db.Where("date = ?", today).Find(&questions)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -36,7 +36,7 @@ func GetTodayQuestions() ([]types.Question, error) {
 	}
 
 	var result []types.Question
-	res = gormDB.Where("id IN ?", questionIDs).Find(&result)
+	res = d.db.Where("id IN ?", questionIDs).Find(&result)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -45,11 +45,11 @@ func GetTodayQuestions() ([]types.Question, error) {
 }
 
 // GetTodayQuestionsWithStatus returns today's questions along with their completion status
-func GetTodayQuestionsWithStatus() ([]types.TodayQuestionWithStatus, error) {
+func (d SQLDatabase) GetTodayQuestionsWithStatus() ([]types.TodayQuestionWithStatus, error) {
 	var todayQuestions []types.TodayQuestion
 	today := time.Now().Format("2006-01-02")
 
-	res := gormDB.Where("date = ?", today).Find(&todayQuestions)
+	res := d.db.Where("date = ?", today).Find(&todayQuestions)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -64,7 +64,7 @@ func GetTodayQuestionsWithStatus() ([]types.TodayQuestionWithStatus, error) {
 	}
 
 	var questions []types.Question
-	res = gormDB.Where("id IN ?", questionIDs).Find(&questions)
+	res = d.db.Where("id IN ?", questionIDs).Find(&questions)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -88,10 +88,10 @@ func GetTodayQuestionsWithStatus() ([]types.TodayQuestionWithStatus, error) {
 }
 
 // MarkTodayQuestionCompleted marks a specific question as completed for today
-func MarkTodayQuestionCompleted(questionID uint) error {
+func (d SQLDatabase) MarkTodayQuestionCompleted(questionID uint) error {
 	today := time.Now().Format("2006-01-02")
 
-	res := gormDB.Model(&types.TodayQuestion{}).
+	res := d.db.Model(&types.TodayQuestion{}).
 		Where("date = ? AND question_id = ?", today, questionID).
 		Update("completed", true)
 

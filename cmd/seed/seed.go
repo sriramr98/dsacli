@@ -10,15 +10,22 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var Command = &cobra.Command{
-	Use:   "seed [json_path]",
-	Short: "Add problems to database",
-	Long:  "Use this command to add problems to the database",
-	Run:   runSeed,
-	Args:  cobra.ExactArgs(1),
+func GetCommand(db db.Database) *cobra.Command {
+	return &cobra.Command{
+		Use:   "seed [json_path]",
+		Short: "Add problems to database",
+		Long:  "Use this command to add problems to the database",
+		Run:   runSeed(db),
+		Args:  cobra.ExactArgs(1),
+	}
+}
+func runSeed(db db.Database) func(cmd *cobra.Command, args []string) {
+	return func(cmd *cobra.Command, args []string) {
+		executeSeed(db, args)
+	}
 }
 
-func runSeed(_ *cobra.Command, args []string) {
+func executeSeed(db db.Database, args []string) {
 	problemFilePath := args[0]
 	questions, err := readQuestions(problemFilePath)
 	if err != nil {
