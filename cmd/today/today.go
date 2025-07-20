@@ -1,10 +1,13 @@
 package today
 
 import (
+	"dsacli/common"
 	"dsacli/db"
 	"dsacli/types"
 	"fmt"
 	"math/rand"
+	"os/exec"
+	"runtime"
 	"sort"
 	"strings"
 
@@ -20,6 +23,8 @@ const (
 	hardPhase       = "hard"
 )
 
+var More = false
+
 func GetCommand(db db.Database) *cobra.Command {
 	Command := &cobra.Command{
 		Use:   "today",
@@ -27,6 +32,8 @@ func GetCommand(db db.Database) *cobra.Command {
 		Long:  `Suggests two DSA questions for today based on difficulty progression and smart review.`,
 		Run:   todayCmd(db),
 	}
+
+	Command.Flags().BoolVarP(&More, "more", "m", false, "Show more questions (after completing today's questions)")
 
 	return Command
 }
@@ -39,13 +46,32 @@ func todayCmd(db db.Database) func(cmd *cobra.Command, args []string) {
 
 func executeToday(db db.Database) {
 	// Check if today's questions already exist
-	if questionsWithStatus, err := getTodayQuestionsWithStatusIfExist(db); err == nil && len(questionsWithStatus) > 0 {
-		displayTodayQuestions(questionsWithStatus)
-		return
+	questionsWithStatus, err := getTodayQuestionsWithStatusIfExist(db)
+	if err == nil && len(questionsWithStatus) > 0 {
+		// If all completed and more flag is set, generate new questions
+		if !allCompleted(questionsWithStatus) {
+			displayTodayQuestions(questionsWithStatus)
+			return
+		} else if !More {
+			// If all questions are completed and more flag is not set, notify user.
+			color.Green("You have already completed today's questions!")
+			color.Yellow("Use --more flag to see more questions.")
+			return
+		} else {
+			color.Cyan("You have completed today's questions. Generating new ones...")
+		}
+	}
+
+	questionIdsToIgnore := make([]uint, 0)
+	// If more flag is set, retrieve today's questions to avoid duplicates
+	if More {
+		for _, qws := range questionsWithStatus {
+			questionIdsToIgnore = append(questionIdsToIgnore, qws.Question.ID)
+		}
 	}
 
 	// Generate new questions for today
-	questions, err := generateTodayQuestions(db)
+	questions, err := generateTodayQuestions(db, questionIdsToIgnore)
 	if err != nil {
 		color.Red("Error generating today's questions: %v", err)
 		return
@@ -56,13 +82,13 @@ func executeToday(db db.Database) {
 		return
 	}
 
-	// Display and save today's questions
-	color.Cyan("Here are your questions for today:")
-	displayQuestions(questions)
-
 	if err := db.InsertTodayQuestions(questions); err != nil {
 		color.Red("Unable to save today's questions: %v", err)
 	}
+
+	color.Cyan("Here are your questions for today:")
+	displayQuestions(questions)
+
 }
 
 // getTodayQuestionsWithStatusIfExist retrieves today's questions with completion status if they already exist
@@ -71,7 +97,7 @@ func getTodayQuestionsWithStatusIfExist(db db.Database) ([]types.TodayQuestionWi
 }
 
 // generateTodayQuestions generates new questions based on difficulty progression
-func generateTodayQuestions(db db.Database) ([]types.Question, error) {
+func generateTodayQuestions(db db.Database, questionsToIgnore []uint) ([]types.Question, error) {
 	// Load questions by difficulty
 	easyQuestions, err := db.GetQuestionsByDifficulty(easyPhase)
 	if err != nil {
@@ -184,28 +210,41 @@ func generateMasteryPhaseQuestions(allQuestions []types.Question) []types.Questi
 }
 
 func displayQuestions(questions []types.Question) {
+	var prompts []string = make([]string, len(questions))
 	for idx, q := range questions {
 		difficultyFormatted := strings.ToUpper(string(q.Difficulty[0])) + q.Difficulty[1:]
-		fmt.Printf("%d. %s (%s) - %s ❌\n", idx+1, q.Name, difficultyFormatted, q.URL)
+		prompts[idx] = fmt.Sprintf("%d. %s (%s)", idx+1, q.Name, difficultyFormatted)
+	}
+	idx, err := common.PromptSelect("Select a question to open in browser", prompts)
+	if err != nil {
+		color.Red("Error selecting question: %v", err)
+		return
+	}
+
+	question := questions[idx]
+	color.Cyan("Opening question: %s (%s)", question.Name, question.URL)
+	// Open question.URL in the default browser
+	if err := openBrowser(question.URL); err != nil {
+		color.Red("Error opening browser: %v", err)
+		return
 	}
 }
 
 // displayTodayQuestions displays today's questions with their completion status
 func displayTodayQuestions(questionsWithStatus []types.TodayQuestionWithStatus) {
 	allCompleted := true
+	prompts := make([]string, 0)
 
+	displayedQns := make([]types.Question, 0)
 	for idx, qws := range questionsWithStatus {
 		q := qws.Question
 		difficultyFormatted := strings.ToUpper(string(q.Difficulty[0])) + q.Difficulty[1:]
 
-		statusIcon := "❌" // Not completed
-		if qws.Completed {
-			statusIcon = "✅" // Completed
-		} else {
+		if !qws.Completed {
+			prompts = append(prompts, fmt.Sprintf("%d. %s (%s) - %s", idx+1, q.Name, difficultyFormatted, q.URL))
+			displayedQns = append(displayedQns, qws.Question)
 			allCompleted = false
 		}
-
-		fmt.Printf("%d. %s (%s) - %s %s\n", idx+1, q.Name, difficultyFormatted, q.URL, statusIcon)
 	}
 
 	// If all questions are completed, show congratulations message
@@ -213,6 +252,20 @@ func displayTodayQuestions(questionsWithStatus []types.TodayQuestionWithStatus) 
 		fmt.Println()
 		color.Green("🎉 Congratulations! You've completed all your questions for today!")
 		color.Yellow("Great job on staying consistent with your DSA practice!")
+	} else {
+		idx, err := common.PromptSelect("Select a question to open in browser", prompts)
+		if err != nil {
+			color.Red("Error selecting question: %v", err)
+			return
+		}
+
+		question := displayedQns[idx]
+		color.Cyan("Opening question: %s (%s)", question.Name, question.URL)
+		// Open question.URL in the default browser
+		if err := openBrowser(question.URL); err != nil {
+			color.Red("Error opening browser: %v", err)
+			return
+		}
 	}
 }
 
@@ -291,4 +344,33 @@ func filterUnattemptedQuestions(questions []types.Question) []types.Question {
 		}
 	}
 	return unattempted
+}
+
+func allCompleted(questionsWithStatus []types.TodayQuestionWithStatus) bool {
+	if len(questionsWithStatus) == 0 {
+		return false
+	}
+
+	for _, qws := range questionsWithStatus {
+		if !qws.Completed {
+			return false
+		}
+	}
+
+	return true
+}
+
+func openBrowser(url string) error {
+	var err error
+	// Cross-platform browser opening
+	switch runtime.GOOS {
+	case "darwin":
+		// macOS
+		_, err = exec.Command("open", url).Output()
+	case "windows": //TODO: Test on Windows
+		_, err = exec.Command("start", url).Output()
+	default: //TODO: Test on Linux
+		_, err = exec.Command("xdg-open", url).Output()
+	}
+	return err
 }
