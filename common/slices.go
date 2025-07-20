@@ -9,3 +9,13 @@ func FilterSlice[T any](slice []T, predicate func(T) bool) []T {
 	}
 	return result
 }
+
+func FindInSlice[T any](slice []T, predicate func(T) bool) (T, bool) {
+	var defaultVal T
+	for _, v := range slice {
+		if predicate(v) {
+			return v, true
+		}
+	}
+	return defaultVal, false
+}

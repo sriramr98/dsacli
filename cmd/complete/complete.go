@@ -60,27 +60,37 @@ func executeComplete(db db.Database) error {
 	}
 
 	// If all questions for today are already completed, exit early
-	completedCount := 0
+	uncompletedQns := make([]types.Question, 0)
 	for _, tq := range todaysTrack {
-		if tq.Completed {
-			completedCount++
+		if !tq.Completed {
+			qn, found := common.FindInSlice(todaysQuestions, func(question types.Question) bool {
+				return question.ID == tq.QuestionID
+			})
+			if found {
+				uncompletedQns = append(uncompletedQns, qn)
+			}
 		}
 	}
-	if completedCount == len(todaysTrack) {
+
+	if len(uncompletedQns) == 0 {
 		color.Yellow("All questions for today are already completed. No further action needed.")
 		return nil // No error, just a message to the user
 	}
 
+	color.Cyan("You have completed %d out of %d questions for today.", len(todaysTrack)-len(uncompletedQns), len(todaysTrack))
+
 	// Let user select a question
-	questionID, err := selectQuestion(todaysQuestions)
+	questionID, err := selectQuestion(uncompletedQns)
 	if err != nil {
 		return fmt.Errorf("selecting question: %w", err)
 	}
 
 	// Get the question details
-	questionToUpdate, err := db.FindQuestionByID(questionID)
-	if err != nil {
-		return fmt.Errorf("finding question: %w", err)
+	questionToUpdate, found := common.FindInSlice(todaysQuestions, func(question types.Question) bool {
+		return question.ID == questionID
+	})
+	if !found {
+		return fmt.Errorf("question with ID %d not found in today's questions", questionID)
 	}
 
 	// Display question info

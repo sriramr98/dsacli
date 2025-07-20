@@ -233,6 +233,7 @@ func displayQuestions(questions []types.Question) {
 // displayTodayQuestions displays today's questions with their completion status
 func displayTodayQuestions(questionsWithStatus []types.TodayQuestionWithStatus) {
 	allCompleted := true
+	totalCompleted := 0
 	prompts := make([]string, 0)
 
 	displayedQns := make([]types.Question, 0)
@@ -244,6 +245,8 @@ func displayTodayQuestions(questionsWithStatus []types.TodayQuestionWithStatus) 
 			prompts = append(prompts, fmt.Sprintf("%d. %s (%s) - %s", idx+1, q.Name, difficultyFormatted, q.URL))
 			displayedQns = append(displayedQns, qws.Question)
 			allCompleted = false
+		} else {
+			totalCompleted += 1
 		}
 	}
 
@@ -253,6 +256,7 @@ func displayTodayQuestions(questionsWithStatus []types.TodayQuestionWithStatus) 
 		color.Green("🎉 Congratulations! You've completed all your questions for today!")
 		color.Yellow("Great job on staying consistent with your DSA practice!")
 	} else {
+		color.Cyan("You have completed %d out of %d questions for today.", totalCompleted, len(questionsWithStatus))
 		idx, err := common.PromptSelect("Select a question to open in browser", prompts)
 		if err != nil {
 			color.Red("Error selecting question: %v", err)
