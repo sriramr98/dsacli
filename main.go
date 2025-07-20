@@ -4,6 +4,7 @@ import (
 	"dsacli/cmd/complete"
 	"dsacli/cmd/list"
 	"dsacli/cmd/seed"
+	"dsacli/cmd/status"
 	"dsacli/cmd/today"
 	"dsacli/config"
 	"dsacli/db"
@@ -47,6 +48,7 @@ func main() {
 	rootCmd.AddCommand(complete.GetProgressCommand(db))
 	rootCmd.AddCommand(list.GetCommand(db))
 	rootCmd.AddCommand(seed.GetCommand(db))
+	rootCmd.AddCommand(status.GetCommand(db))
 	rootCmd.AddCommand(versionCommand)
 
 	if err := rootCmd.Execute(); err != nil {

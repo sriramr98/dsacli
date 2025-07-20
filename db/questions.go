@@ -44,3 +44,12 @@ func (d SQLDatabase) InsertQuestions(questions []types.Question) error {
 	}
 	return nil
 }
+
+func (d SQLDatabase) GetAllAttemptedQuestions() ([]types.Question, error) {
+	var questions []types.Question
+	res := d.db.Where("attempted = ?", true).Find(&questions)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	return questions, nil
+}

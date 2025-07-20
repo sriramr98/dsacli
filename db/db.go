@@ -20,4 +20,5 @@ type Database interface {
 	InsertTodayQuestions(questions []types.Question) error
 	GetTodayQuestionsWithStatus() ([]types.TodayQuestionWithStatus, error)
 	MarkTodayQuestionCompleted(questionID uint) error
+	GetAllAttemptedQuestions() ([]types.Question, error)
 }
