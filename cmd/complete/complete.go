@@ -49,7 +49,7 @@ func completeCmd(db db.Database) func(cmd *cobra.Command, args []string) {
 // executeComplete contains the main business logic for completing questions
 func executeComplete(db db.Database) error {
 	// Get today's questions
-	todaysQuestions, err := db.GetTodayQuestions()
+	todaysQuestions, todaysTrack, err := db.GetTodayQuestions()
 	if err != nil {
 		return fmt.Errorf("loading today's questions: %w", err)
 	}
@@ -57,6 +57,18 @@ func executeComplete(db db.Database) error {
 	if len(todaysQuestions) == 0 {
 		color.Red("No questions found for today. Start by running 'dsacli today' to get today's questions.")
 		return nil // This is not an error, just a message to the user
+	}
+
+	// If all questions for today are already completed, exit early
+	completedCount := 0
+	for _, tq := range todaysTrack {
+		if tq.Completed {
+			completedCount++
+		}
+	}
+	if completedCount == len(todaysTrack) {
+		color.Yellow("All questions for today are already completed. No further action needed.")
+		return nil // No error, just a message to the user
 	}
 
 	// Let user select a question
@@ -156,7 +168,6 @@ func collectFeedback() (CompletionFeedback, error) {
 
 // updateQuestionWithFeedback updates the question with the user's feedback using spaced repetition
 func updateQuestionWithFeedback(question *types.Question, feedback CompletionFeedback) error {
-	// Use the new spaced repetition algorithm
 	ProcessReview(question, feedback.TimeTaken, feedback.HintsNeeded, feedback.OptimalSolution, feedback.AnyBugs)
 
 	// Update question fields

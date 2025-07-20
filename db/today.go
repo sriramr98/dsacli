@@ -21,13 +21,13 @@ func (d SQLDatabase) InsertTodayQuestions(questions []types.Question) error {
 	return res.Error
 }
 
-func (d SQLDatabase) GetTodayQuestions() ([]types.Question, error) {
+func (d SQLDatabase) GetTodayQuestions() ([]types.Question, []types.TodayQuestion, error) {
 	var questions []types.TodayQuestion
 	today := time.Now().Format("2006-01-02")
 
 	res := d.db.Where("date = ?", today).Find(&questions)
 	if res.Error != nil {
-		return nil, res.Error
+		return nil, nil, res.Error
 	}
 
 	var questionIDs []uint
@@ -38,10 +38,10 @@ func (d SQLDatabase) GetTodayQuestions() ([]types.Question, error) {
 	var result []types.Question
 	res = d.db.Where("id IN ?", questionIDs).Find(&result)
 	if res.Error != nil {
-		return nil, res.Error
+		return nil, nil, res.Error
 	}
 
-	return result, nil
+	return result, questions, nil
 }
 
 // GetTodayQuestionsWithStatus returns today's questions along with their completion status

@@ -16,7 +16,7 @@ type Database interface {
 	FindQuestionByID(id uint) (types.Question, error)
 	UpdateQuestion(question types.Question) error
 	InsertQuestions(questions []types.Question) error
-	GetTodayQuestions() ([]types.Question, error)
+	GetTodayQuestions() ([]types.Question, []types.TodayQuestion, error)
 	InsertTodayQuestions(questions []types.Question) error
 	GetTodayQuestionsWithStatus() ([]types.TodayQuestionWithStatus, error)
 	MarkTodayQuestionCompleted(questionID uint) error
