@@ -43,12 +43,12 @@ func CalculateScore(timeTaken, hintsNeeded, optimalSolution, anyBugs int, questi
 	newScore := int(math.Round((reviewInterval + timeFactor) * solutionMultiplier))
 
 	// If this is the first attempt, return the new score
-	if question.SRScore == 0 {
+	if question.LastPScore == 0 {
 		return newScore
 	}
 
 	// Otherwise, blend with previous score
-	return int(float64(question.SRScore)*PreviousScoreWeight + float64(newScore)*CurrentScoreWeight)
+	return int(float64(question.LastPScore)*PreviousScoreWeight + float64(newScore)*CurrentScoreWeight)
 }
 
 // calculateTimeRank converts time taken into a 1-5 rating scale

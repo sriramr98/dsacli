@@ -95,8 +95,18 @@ func executeComplete(db db.Database) error {
 		color.Yellow("Warning: Could not mark today's question as completed: %v", err)
 	}
 
-	color.Green("\nSuccessfully updated! New SR Score for '%s' is %d.",
-		questionToUpdate.Name, questionToUpdate.SRScore)
+	color.Green("\nSuccessfully updated! '%s' (ID: %d)", questionToUpdate.Name, questionToUpdate.ID)
+	color.Cyan("Performance Score: %.2f/1.00", questionToUpdate.LastPScore)
+	color.Cyan("Review Interval: %d days", questionToUpdate.ReviewInterval)
+	color.Cyan("Review Streak: %d", questionToUpdate.ReviewStreak)
+	color.Cyan("Easiness Factor: %.2f", questionToUpdate.EasinessFactor)
+	color.Cyan("Attempt Count: %d", questionToUpdate.AttemptCount)
+
+	if questionToUpdate.Mastered {
+		color.Green("🎉 You have mastered this question.. We won't show this question again...")
+	} else {
+		color.Yellow("⏳ Working towards progression mastery...")
+	}
 
 	return nil
 }
@@ -121,7 +131,7 @@ func collectFeedback() (CompletionFeedback, error) {
 	feedback := CompletionFeedback{}
 
 	var err error
-	feedback.HintsNeeded, err = common.PromptInt("Did you need hints? (1=many hints, 5=no hints)", common.OneToFiveRatingValidator)
+	feedback.HintsNeeded, err = common.PromptInt("How many hints did you need? (Enter number of hints used, 0 if none)", common.NumberValidator)
 	if err != nil {
 		return feedback, fmt.Errorf("reading hints input: %w", err)
 	}
@@ -144,16 +154,15 @@ func collectFeedback() (CompletionFeedback, error) {
 	return feedback, nil
 }
 
-// updateQuestionWithFeedback updates the question with the user's feedback
+// updateQuestionWithFeedback updates the question with the user's feedback using spaced repetition
 func updateQuestionWithFeedback(question *types.Question, feedback CompletionFeedback) error {
-	// Calculate new SR score
-	srScore := CalculateScore(feedback.TimeTaken, feedback.HintsNeeded, feedback.OptimalSolution, feedback.AnyBugs, *question)
+	// Use the new spaced repetition algorithm
+	ProcessReview(question, feedback.TimeTaken, feedback.HintsNeeded, feedback.OptimalSolution, feedback.AnyBugs)
 
 	// Update question fields
 	now := time.Now()
 	question.LastReviewed = &now
 	question.Attempted = true
-	question.SRScore = srScore
 
 	return nil
 }

@@ -173,7 +173,7 @@ func generateMasteryPhaseQuestions(allQuestions []types.Question) []types.Questi
 
 	// Sort by SR score (highest first)
 	sort.Slice(allQuestions, func(i, j int) bool {
-		return allQuestions[i].SRScore > allQuestions[j].SRScore
+		return allQuestions[i].LastPScore > allQuestions[j].LastPScore
 	})
 
 	if len(allQuestions) >= questionsPerDay {
@@ -243,12 +243,12 @@ func getHighestSRQuestion(questions []types.Question) (types.Question, bool) {
 
 	maxSR := questions[0]
 	for _, q := range questions {
-		if q.SRScore > maxSR.SRScore {
+		if q.LastPScore > maxSR.LastPScore {
 			maxSR = q
 		}
 	}
 
-	return maxSR, false
+	return maxSR, true
 }
 
 func allAttempted(questions []types.Question) bool {

@@ -44,6 +44,7 @@ func main() {
 
 	rootCmd.AddCommand(today.GetCommand(db))
 	rootCmd.AddCommand(complete.GetCommand(db))
+	rootCmd.AddCommand(complete.GetProgressCommand(db))
 	rootCmd.AddCommand(list.GetCommand(db))
 	rootCmd.AddCommand(seed.GetCommand(db))
 	rootCmd.AddCommand(versionCommand)

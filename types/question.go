@@ -8,8 +8,15 @@ type Question struct {
 	URL          string     `json:"url"`
 	Difficulty   string     `json:"difficulty"`
 	LastReviewed *time.Time `json:"last_reviewed"`
-	SRScore      int        `json:"sr_score"`
 	Attempted    bool       `json:"attempted"`
+
+	// Spaced Repetition Algorithm fields
+	ReviewInterval int     `json:"review_interval" gorm:"default:0"`   // days until next review
+	EasinessFactor float64 `json:"easiness_factor" gorm:"default:2.5"` // interval growth factor
+	ReviewStreak   int     `json:"review_streak" gorm:"default:0"`     // consecutive successful recalls
+	Mastered       bool    `json:"mastered" gorm:"default:false"`      // progression gate flag
+	AttemptCount   int     `json:"attempt_count" gorm:"default:0"`     // total attempts
+	LastPScore     float64 `json:"last_p_score" gorm:"default:0"`      // previous attempt's p-score
 }
 
 type TodayQuestion struct {

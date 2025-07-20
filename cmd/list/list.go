@@ -46,7 +46,7 @@ func executeList(db db.Database) error {
 
 	questions, err := db.GetAllQuestions()
 	if err != nil {
-		return fmt.Errorf("Error loading questions: %v", err)
+		return fmt.Errorf("error loading questions: %v", err)
 	}
 
 	color.Cyan("All DSA Questions:")
@@ -76,7 +76,7 @@ func executeList(db db.Database) error {
 				status = "✅"
 			}
 
-			longFormLogs = append(longFormLogs, fmt.Sprintf("  %s ID:%d - %s (SR Score: %d)\n", status, q.ID, q.Name, q.SRScore))
+			longFormLogs = append(longFormLogs, fmt.Sprintf("  %s ID:%d - %s (P Score: %f)\n", status, q.ID, q.Name, q.LastPScore))
 		}
 
 		color.White("	- Total Attempted: %d\n", totalAttempted)

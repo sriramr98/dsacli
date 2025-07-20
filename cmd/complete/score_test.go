@@ -22,7 +22,7 @@ func TestCalculateScore(t *testing.T) {
 			hintsNeeded:     5,
 			optimalSolution: 5,
 			anyBugs:         5,
-			question:        types.Question{SRScore: 0},
+			question:        types.Question{LastPScore: 0},
 			expectPositive:  true,
 		},
 		{
@@ -31,7 +31,7 @@ func TestCalculateScore(t *testing.T) {
 			hintsNeeded:     1,
 			optimalSolution: 1,
 			anyBugs:         1,
-			question:        types.Question{SRScore: 0},
+			question:        types.Question{LastPScore: 0},
 			expectPositive:  true,
 		},
 		{
@@ -40,7 +40,7 @@ func TestCalculateScore(t *testing.T) {
 			hintsNeeded:     3,
 			optimalSolution: 4,
 			anyBugs:         4,
-			question:        types.Question{SRScore: 100},
+			question:        types.Question{LastPScore: 100},
 			expectPositive:  true,
 		},
 	}
@@ -147,7 +147,7 @@ func TestCalculateScore_Integration(t *testing.T) {
 	question := types.Question{
 		ID:           1,
 		Name:         "Two Sum",
-		SRScore:      1000,
+		LastPScore:   1000,
 		LastReviewed: &lastReviewed,
 	}
 
@@ -166,8 +166,8 @@ func TestCalculateScore_Integration(t *testing.T) {
 
 func BenchmarkCalculateScore(b *testing.B) {
 	question := types.Question{
-		ID:      1,
-		SRScore: 1000,
+		ID:         1,
+		LastPScore: 1000,
 	}
 
 	for i := 0; i < b.N; i++ {
